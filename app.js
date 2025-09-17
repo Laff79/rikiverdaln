@@ -2,7 +2,9 @@ let companies = {};
 let stockPrices = {};
 let holdings = {}; // { company: qty }
 let cash = 1000;
+let day = 1;
 
+// MARKEDSOPPSETT
 const startPrices = {
   "Aker Verdal": 600,
   "Stiklestad Kulturhus": 300,
@@ -18,6 +20,15 @@ const startPrices = {
   "Prix Ørmelen": 100,
   "Farmors Fargerike Verden": 80
 };
+
+// Små svingninger for ikke-rammede selskaper (f.eks. -1.5% til +1.5%)
+const DRIFT_MIN = -1.5;
+const DRIFT_MAX =  1.5;
+
+// Antall nyheter per dag (2 eller 3)
+function newsCountToday() {
+  return Math.random() < 0.5 ? 2 : 3;
+}
 
 async function loadData() {
   const res = await fetch("hendelser.json");
@@ -44,6 +55,7 @@ function populateSelect() {
 }
 
 function fmt(n){ return `${n.toFixed(0)} kr`; }
+function pct(n){ return (n>0?"+":"") + n.toFixed(1) + "%"; }
 
 function updatePricesPanel() {
   const container = document.getElementById("prices");
@@ -77,6 +89,7 @@ function updatePortfolioTable() {
 }
 
 function updateKPIs() {
+  document.getElementById("dayEl").textContent = day;
   document.getElementById("cashEl").textContent = fmt(cash);
   const p = portfolioValue();
   document.getElementById("portfolioValueEl").textContent = fmt(p);
@@ -114,24 +127,49 @@ function parseChange(evt){
   return dir === "opp" ? (p)=>p*(1+pct/100) : (p)=>p*(1-pct/100);
 }
 
-function drawEvent() {
-  const select = document.getElementById("companySelect");
-  const company = select.value;
-  if(!company) return;
-
-  const events = companies[company];
-  const randomEvent = events[Math.floor(Math.random() * events.length)];
-
-  const changer = parseChange(randomEvent);
-  if (changer) {
-    const before = stockPrices[company];
-    const after = Math.max(0, changer(before));
-    stockPrices[company] = after;
-    logNews(`📰 ${company}: ${randomEvent} (fra ${fmt(before)} til ${fmt(after)})`);
-    updateUI();
-  } else {
-    logNews(`📰 ${company}: ${randomEvent}`);
+function randomCompanies(k){
+  const keys = Object.keys(companies);
+  const chosen = [];
+  while (chosen.length < k) {
+    const c = keys[Math.floor(Math.random()*keys.length)];
+    if (!chosen.includes(c)) chosen.push(c);
   }
+  return chosen;
+}
+
+function clamp(n){ return Math.max(0, n); }
+
+function nextDay(){
+  const n = newsCountToday();
+  const impacted = randomCompanies(n);
+  logNews(`📅 Dag ${day}: ${n} nyhet(er) rammer ${impacted.join(", ")}`);
+
+  // 1) Trekk og anvend nyheter for de påvirkede selskapene
+  impacted.forEach(company => {
+    const events = companies[company];
+    const evt = events[Math.floor(Math.random()*events.length)];
+    const changer = parseChange(evt);
+    if (changer) {
+      const before = stockPrices[company];
+      const after = clamp(changer(before));
+      stockPrices[company] = after;
+      logNews(`📰 ${company}: ${evt} (fra ${fmt(before)} til ${fmt(after)})`);
+    } else {
+      logNews(`📰 ${company}: ${evt}`);
+    }
+  });
+
+  // 2) Markedsdrift for resten
+  Object.keys(stockPrices).forEach(name => {
+    if (impacted.includes(name)) return;
+    const driftPct = DRIFT_MIN + Math.random()*(DRIFT_MAX-DRIFT_MIN);
+    const before = stockPrices[name];
+    const after = clamp(before * (1 + driftPct/100));
+    stockPrices[name] = after;
+  });
+
+  day += 1;
+  updateUI();
 }
 
 function buy() {
@@ -164,7 +202,7 @@ function sell() {
   updateUI();
 }
 
-document.getElementById("drawEvent").addEventListener("click", drawEvent);
+document.getElementById("nextDayBtn").addEventListener("click", nextDay);
 document.getElementById("buyBtn").addEventListener("click", buy);
 document.getElementById("sellBtn").addEventListener("click", sell);
 

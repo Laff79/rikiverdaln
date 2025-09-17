@@ -8,14 +8,14 @@ main{max-width:1100px;margin:0 auto;padding:16px}
 #controls .row{display:flex;gap:12px;align-items:center;margin:8px 0}
 #controls label{width:120px;color:var(--muted)}
 #controls select,#controls input{flex:1;min-width:160px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text)}
-#controls .actions{justify-content:flex-start;margin-top:12px}
+#controls .actions{justify-content:flex-start;margin-top:12px;flex-wrap:wrap;gap:8px}
 #controls button{padding:10px 14px;border-radius:8px;border:1px solid #3b82f6;background:#1d4ed8;color:white;cursor:pointer}
 #controls button:hover{background:#2563eb}
 #controls button.ghost{background:transparent;border-color:#475569}
-#controls button#drawEvent{background:#166534;border-color:#16a34a}
-#controls button#drawEvent:hover{background:#15803d}
+#controls button#nextDayBtn{background:#166534;border-color:#16a34a}
+#controls button#nextDayBtn:hover{background:#15803d}
 #controls .kpis{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px}
-.kpi{display:flex;flex-direction:column;gap:4px;padding:8px 10px;border:1px dashed var(--border);border-radius:8px;min-width:160px}
+.kpi{display:flex;flex-direction:column;gap:4px;padding:8px 10px;border:1px dashed var(--border);border-radius:8px;min-width:140px}
 .kpi span{color:var(--muted)}
 #panel{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 #panel .card:nth-child(3){grid-column:1 / -1}

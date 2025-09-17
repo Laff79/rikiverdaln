@@ -9,7 +9,7 @@
 <body>
   <header>
     <h1>📈 Innherred-børsen</h1>
-    <p>Trekk nyheter, kjøp/selg aksjer og bygg portefølje.</p>
+    <p>Spill dag for dag. Hver dag utløser 2–3 nyheter og litt markedssving for resten.</p>
   </header>
 
   <main>
@@ -25,9 +25,10 @@
       <div class="row actions">
         <button id="buyBtn">Kjøp</button>
         <button id="sellBtn" class="ghost">Selg</button>
-        <button id="drawEvent">Trekk hendelse</button>
+        <button id="nextDayBtn">Neste dag (2–3 nyheter)</button>
       </div>
       <div class="row kpis">
+        <div class="kpi"><span>Dag</span><strong id="dayEl"></strong></div>
         <div class="kpi"><span>Kontanter</span><strong id="cashEl"></strong></div>
         <div class="kpi"><span>Portefølje</span><strong id="portfolioValueEl"></strong></div>
         <div class="kpi"><span>Total verdi</span><strong id="totalValueEl"></strong></div>
@@ -58,7 +59,7 @@
           </thead>
           <tbody></tbody>
         </table>
-        <p class="muted">Tips: Kurs oppdateres av nyheter. Kjøp billig, selg dyrt.</p>
+        <p class="muted">Tips: Kurs oppdateres daglig. Kjøp billig, selg dyrt.</p>
       </div>
     </section>
   </main>
