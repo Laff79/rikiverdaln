@@ -2,19 +2,70 @@
 <html lang="no">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Innherred-børsen</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>📈 Innherred-børsen</h1>
+  <header>
+    <h1>📈 Innherred-børsen</h1>
+    <p>Trekk nyheter, kjøp/selg aksjer og bygg portefølje.</p>
+  </header>
 
-  <div id="game">
-    <select id="companySelect"></select>
-    <button id="drawEvent">Trekk hendelse</button>
-  </div>
+  <main>
+    <section id="controls" class="card">
+      <div class="row">
+        <label for="companySelect">Bedrift</label>
+        <select id="companySelect"></select>
+      </div>
+      <div class="row">
+        <label for="quantityInput">Antall</label>
+        <input id="quantityInput" type="number" min="1" step="1" value="1">
+      </div>
+      <div class="row actions">
+        <button id="buyBtn">Kjøp</button>
+        <button id="sellBtn" class="ghost">Selg</button>
+        <button id="drawEvent">Trekk hendelse</button>
+      </div>
+      <div class="row kpis">
+        <div class="kpi"><span>Kontanter</span><strong id="cashEl"></strong></div>
+        <div class="kpi"><span>Portefølje</span><strong id="portfolioValueEl"></strong></div>
+        <div class="kpi"><span>Total verdi</span><strong id="totalValueEl"></strong></div>
+      </div>
+    </section>
 
-  <div id="newsFeed"></div>
-  <div id="stockPrices"></div>
+    <section id="panel">
+      <div id="newsFeed" class="card">
+        <h3>Nyhetsfeed</h3>
+        <div id="newsItems"></div>
+      </div>
+
+      <div id="stockPrices" class="card">
+        <h3>Aksjekurser</h3>
+        <div id="prices"></div>
+      </div>
+
+      <div id="portfolio" class="card">
+        <h3>Portefølje</h3>
+        <table id="portfolioTable">
+          <thead>
+            <tr>
+              <th>Bedrift</th>
+              <th>Antall</th>
+              <th>Kurs</th>
+              <th>Verdi</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <p class="muted">Tips: Kurs oppdateres av nyheter. Kjøp billig, selg dyrt.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <small>© Innherred-børsen – prototyp</small>
+  </footer>
 
   <script src="app.js"></script>
 </body>

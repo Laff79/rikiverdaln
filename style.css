@@ -1,30 +1,29 @@
-body {
-  font-family: Arial, sans-serif;
-  background: #f4f4f4;
-  margin: 0;
-  padding: 20px;
-}
-
-h1 {
-  text-align: center;
-}
-
-#game {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-#newsFeed, #stockPrices {
-  max-width: 600px;
-  margin: 0 auto;
-  background: white;
-  padding: 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-}
-
-.news-item {
-  margin-bottom: 10px;
-}
+*{box-sizing:border-box}
+:root{--bg:#0f172a;--card:#111827;--text:#e5e7eb;--muted:#94a3b8;--accent:#60a5fa;--green:#22c55e;--red:#ef4444;--border:#1f2937}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial}
+header{padding:24px 16px;text-align:center;border-bottom:1px solid var(--border)}
+h1{margin:0 0 8px}
+main{max-width:1100px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:16px}
+#controls .row{display:flex;gap:12px;align-items:center;margin:8px 0}
+#controls label{width:120px;color:var(--muted)}
+#controls select,#controls input{flex:1;min-width:160px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text)}
+#controls .actions{justify-content:flex-start;margin-top:12px}
+#controls button{padding:10px 14px;border-radius:8px;border:1px solid #3b82f6;background:#1d4ed8;color:white;cursor:pointer}
+#controls button:hover{background:#2563eb}
+#controls button.ghost{background:transparent;border-color:#475569}
+#controls button#drawEvent{background:#166534;border-color:#16a34a}
+#controls button#drawEvent:hover{background:#15803d}
+#controls .kpis{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px}
+.kpi{display:flex;flex-direction:column;gap:4px;padding:8px 10px;border:1px dashed var(--border);border-radius:8px;min-width:160px}
+.kpi span{color:var(--muted)}
+#panel{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+#panel .card:nth-child(3){grid-column:1 / -1}
+.news{padding:8px 10px;border-bottom:1px dashed var(--border)}
+.price{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--border)}
+.price .up{color:var(--green)} .price .down{color:var(--red)}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px;border-bottom:1px dashed var(--border);text-align:left}
+.muted{color:var(--muted)}
+footer{padding:16px;text-align:center;color:var(--muted);border-top:1px solid var(--border);margin-top:20px}
+@media (max-width:900px){#panel{grid-template-columns:1fr}}
