@@ -4,6 +4,11 @@ let holdings = {}; // { company: qty }
 let cash = 1000;
 let day = 1;
 
+// Nyhetsbuffer for kontrollert feed
+const NEWS_LIMIT_VISIBLE = 30;   // vis maks 30 i DOM
+const NEWS_LIMIT_BUFFER  = 200;  // behold maks 200 i minnet
+let newsBuffer = [];             // nyeste først
+
 // MARKEDSOPPSETT
 const startPrices = {
   "Aker Verdal": 600,
@@ -21,7 +26,7 @@ const startPrices = {
   "Farmors Fargerike Verden": 80
 };
 
-// Små svingninger for ikke-rammede selskaper (f.eks. -1.5% til +1.5%)
+// Små svingninger for ikke-rammede selskaper
 const DRIFT_MIN = -1.5;
 const DRIFT_MAX =  1.5;
 
@@ -39,6 +44,13 @@ async function loadData() {
     holdings[name] = 0;
   }
 
+  // UI hooks
+  document.getElementById("clearFeedBtn").addEventListener("click", () => { newsBuffer = []; renderFeed(); });
+  document.getElementById("compactToggle").addEventListener("change", (e)=>{
+    const el = document.getElementById("newsItems");
+    el.classList.toggle("compact", e.target.checked);
+  });
+
   populateSelect();
   updateUI();
 }
@@ -55,7 +67,6 @@ function populateSelect() {
 }
 
 function fmt(n){ return `${n.toFixed(0)} kr`; }
-function pct(n){ return (n>0?"+":"") + n.toFixed(1) + "%"; }
 
 function updatePricesPanel() {
   const container = document.getElementById("prices");
@@ -109,14 +120,30 @@ function updateUI(){
   updatePortfolioTable();
   updateKPIs();
   updateSelectLabels();
+  renderFeed();
 }
 
-function logNews(text){
+function renderFeed(){
   const list = document.getElementById("newsItems");
-  const item = document.createElement("div");
-  item.className = "news";
-  item.textContent = text;
-  list.prepend(item);
+  list.innerHTML = "";
+  // vis kun de NEWS_LIMIT_VISIBLE nyeste
+  const visible = newsBuffer.slice(0, NEWS_LIMIT_VISIBLE);
+  visible.forEach(text => {
+    const item = document.createElement("div");
+    item.className = "news";
+    item.textContent = text;
+    list.appendChild(item);
+  });
+  // oppdater teller
+  document.getElementById("visibleCount").textContent = visible.length;
+  document.getElementById("totalCount").textContent = newsBuffer.length;
+}
+
+function pushNews(text){
+  newsBuffer.unshift(text); // nyeste først
+  if (newsBuffer.length > NEWS_LIMIT_BUFFER) {
+    newsBuffer = newsBuffer.slice(0, NEWS_LIMIT_BUFFER);
+  }
 }
 
 function parseChange(evt){
@@ -140,9 +167,9 @@ function randomCompanies(k){
 function clamp(n){ return Math.max(0, n); }
 
 function nextDay(){
-  const n = newsCountToday();
+  const n = Math.random() < 0.5 ? 2 : 3;
   const impacted = randomCompanies(n);
-  logNews(`📅 Dag ${day}: ${n} nyhet(er) rammer ${impacted.join(", ")}`);
+  pushNews(`📅 Dag ${day}: ${n} nyhet(er) rammer ${impacted.join(", ")}`);
 
   // 1) Trekk og anvend nyheter for de påvirkede selskapene
   impacted.forEach(company => {
@@ -153,16 +180,16 @@ function nextDay(){
       const before = stockPrices[company];
       const after = clamp(changer(before));
       stockPrices[company] = after;
-      logNews(`📰 ${company}: ${evt} (fra ${fmt(before)} til ${fmt(after)})`);
+      pushNews(`📰 ${company}: ${evt} (fra ${fmt(before)} til ${fmt(after)})`);
     } else {
-      logNews(`📰 ${company}: ${evt}`);
+      pushNews(`📰 ${company}: ${evt}`);
     }
   });
 
   // 2) Markedsdrift for resten
   Object.keys(stockPrices).forEach(name => {
     if (impacted.includes(name)) return;
-    const driftPct = DRIFT_MIN + Math.random()*(DRIFT_MAX-DRIFT_MIN);
+    const driftPct = -1.5 + Math.random()*(1.5 - (-1.5));
     const before = stockPrices[name];
     const after = clamp(before * (1 + driftPct/100));
     stockPrices[name] = after;
@@ -178,12 +205,13 @@ function buy() {
   const price = stockPrices[company];
   const cost = qty * price;
   if (cost > cash) {
-    logNews(`⚠️ Ikke nok kontanter til å kjøpe ${qty} x ${company} (${fmt(cost)}).`);
+    pushNews(`⚠️ Ikke nok kontanter til å kjøpe ${qty} x ${company} (${fmt(cost)}).`);
+    renderFeed();
     return;
   }
   cash -= cost;
   holdings[company] += qty;
-  logNews(`✅ Kjøp: ${qty} x ${company} @ ${fmt(price)} (kostnad ${fmt(cost)}).`);
+  pushNews(`✅ Kjøp: ${qty} x ${company} @ ${fmt(price)} (kostnad ${fmt(cost)}).`);
   updateUI();
 }
 
@@ -191,14 +219,15 @@ function sell() {
   const company = document.getElementById("companySelect").value;
   const qty = Math.max(1, Math.floor(parseInt(document.getElementById("quantityInput").value,10) || 0));
   if (holdings[company] < qty) {
-    logNews(`⚠️ Du eier ikke nok ${company}-aksjer til å selge ${qty}.`);
+    pushNews(`⚠️ Du eier ikke nok ${company}-aksjer til å selge ${qty}.`);
+    renderFeed();
     return;
   }
   const price = stockPrices[company];
   const proceeds = qty * price;
   holdings[company] -= qty;
   cash += proceeds;
-  logNews(`💰 Salg: ${qty} x ${company} @ ${fmt(price)} (inntekt ${fmt(proceeds)}).`);
+  pushNews(`💰 Salg: ${qty} x ${company} @ ${fmt(price)} (inntekt ${fmt(proceeds)}).`);
   updateUI();
 }
 

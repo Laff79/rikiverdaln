@@ -37,8 +37,17 @@
 
     <section id="panel">
       <div id="newsFeed" class="card">
-        <h3>Nyhetsfeed</h3>
+        <div class="feed-header">
+          <h3>Nyhetsfeed</h3>
+          <div class="feed-actions">
+            <label class="compact"><input type="checkbox" id="compactToggle"> Kompakt</label>
+            <button id="clearFeedBtn" class="ghost small">Tøm</button>
+          </div>
+        </div>
         <div id="newsItems"></div>
+        <div id="feedFooter" class="feed-footer">
+          <small>Viser siste <span id="visibleCount">30</span> av <span id="totalCount">0</span> nyheter.</small>
+        </div>
       </div>
 
       <div id="stockPrices" class="card">

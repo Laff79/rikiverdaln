@@ -19,11 +19,19 @@ main{max-width:1100px;margin:0 auto;padding:16px}
 .kpi span{color:var(--muted)}
 #panel{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 #panel .card:nth-child(3){grid-column:1 / -1}
+.feed-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+.feed-actions{display:flex;align-items:center;gap:8px}
+button.small{padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer}
+button.small:hover{background:#0b1220}
+label.compact{font-size:12px;color:var(--muted)}
+#newsItems{max-height:320px;overflow-y:auto;border:1px dashed var(--border);border-radius:8px;padding:8px}
+#newsItems.compact .news{padding:4px 6px;font-size:12px}
 .news{padding:8px 10px;border-bottom:1px dashed var(--border)}
 .price{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--border)}
 .price .up{color:var(--green)} .price .down{color:var(--red)}
 table{width:100%;border-collapse:collapse}
 th,td{padding:8px;border-bottom:1px dashed var(--border);text-align:left}
 .muted{color:var(--muted)}
+.feed-footer{margin-top:6px;color:var(--muted)}
 footer{padding:16px;text-align:center;color:var(--muted);border-top:1px solid var(--border);margin-top:20px}
 @media (max-width:900px){#panel{grid-template-columns:1fr}}
