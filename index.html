@@ -108,20 +108,13 @@
         <div id="prices"></div>
       </div>
 
-      <div id="portfolio" class="card">
-        <h3>Portefølje</h3>
-        <table id="portfolioTable">
-          <thead>
-            <tr>
-              <th>Bedrift</th>
-              <th>Antall</th>
-              <th>Kurs</th>
-              <th>Verdi</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-        <p class="muted">Tips: Kurs oppdateres daglig. Kjøp billig, selg dyrt.</p>
+      <div id="analytics" class="card">
+        <div class="analytics-header">
+          <h3>Portefølje-graf & Dagslogg</h3>
+          <button id="exportCsvBtn" class="small ghost">Eksporter CSV</button>
+        </div>
+        <canvas id="chart" height="120"></canvas>
+        <div id="dailyLog" class="daily-log"></div>
       </div>
     </section>
   </main>
@@ -130,6 +123,7 @@
     <small>© Innherred-børsen – prototyp</small>
   </footer>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

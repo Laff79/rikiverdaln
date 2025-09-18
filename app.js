@@ -9,10 +9,18 @@ let totalDays = null; // 10,20,30 eller null (uendelig)
 let currentModeKey = null; // '10','20','30','inf'
 let currentDiff = 'easy';     // easy|normal|hard
 
-// Nyhetsbuffer for feed
+// Nyhetsbuffer
 const NEWS_LIMIT_VISIBLE = 30;
 const NEWS_LIMIT_BUFFER  = 200;
 let newsBuffer = [];
+
+// Historikk for graf og dagslogg
+let historyLabels = [];         // ["Dag 1", "Dag 2", ...]
+let historyPortfolio = [];      // total verdi pr dag
+let historyMarketIndex = [];    // gj.sn. pris pr dag
+
+let chart; // Chart.js instance
+let dailySummaries = []; // {day, events, winners, losers, totalChangePct}
 
 // Startpriser
 const startPrices = {
@@ -74,15 +82,23 @@ async function loadData() {
   document.getElementById("nextDayBtn").addEventListener("click", nextDay);
   document.getElementById("buyBtn").addEventListener("click", buy);
   document.getElementById("sellBtn").addEventListener("click", sell);
+  document.getElementById("exportCsvBtn").addEventListener("click", exportCsv);
 
   showStart();
 }
 
+// ---------- State helpers ----------
 function resetState(){
   stockPrices = {};
   holdings = {};
   newsBuffer = [];
   day = 1;
+
+  historyLabels = [];
+  historyPortfolio = [];
+  historyMarketIndex = [];
+  dailySummaries = [];
+  destroyChart();
 
   const diff = DIFFICULTIES[currentDiff];
   cash = diff.startCash;
@@ -91,6 +107,8 @@ function resetState(){
     stockPrices[name] = startPrices[name] ?? 100;
     holdings[name] = 0;
   }
+  // Dag 0 snapshot
+  snapshotDay();
 }
 
 function showStart(){
@@ -113,6 +131,7 @@ function startGame(daysChoice){
   updateUI();
 }
 
+// ---------- Highscore ----------
 function renderHighscores(){
   const labels = {'10':'10 dager','20':'20 dager','30':'30 dager','inf':'Uendelig'};
   const hsDiv = document.getElementById('highscores');
@@ -152,6 +171,7 @@ function maybeEndGame(){
   }
 }
 
+// ---------- UI update ----------
 function populateSelect() {
   const select = document.getElementById("companySelect");
   select.innerHTML = "";
@@ -219,6 +239,8 @@ function updateUI(){
   updateKPIs();
   updateSelectLabels();
   renderFeed();
+  renderChart();
+  renderDailyLog();
 }
 
 function renderFeed(){
@@ -235,6 +257,87 @@ function renderFeed(){
   document.getElementById("totalCount").textContent = newsBuffer.length;
 }
 
+// ---------- Chart & history ----------
+function snapshotDay(){
+  const label = `Dag ${day}`;
+  const total = portfolioValue() + cash;
+  const avg = average(Object.values(stockPrices));
+  historyLabels.push(label);
+  historyPortfolio.push(total);
+  historyMarketIndex.push(avg);
+}
+
+function average(arr){ return arr.reduce((a,b)=>a+b,0)/arr.length; }
+
+function destroyChart(){
+  if (chart){ chart.destroy(); chart = null; }
+}
+
+function renderChart(){
+  const ctx = document.getElementById('chart').getContext('2d');
+  if (!chart){
+    chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: historyLabels,
+        datasets: [
+          { label: 'Total verdi', data: historyPortfolio, tension: 0.2 },
+          { label: 'Markedsindeks (snittkurs)', data: historyMarketIndex, tension: 0.2 }
+        ]
+      },
+      options: {
+        responsive: true,
+        animation: false,
+        scales: {
+          y: { ticks: { callback: (v)=>`${Math.round(v)} kr` } }
+        },
+        plugins: {
+          legend: { position: 'bottom', labels:{ color:'#e5e7eb' } }
+        }
+      }
+    });
+  } else {
+    chart.data.labels = historyLabels;
+    chart.data.datasets[0].data = historyPortfolio;
+    chart.data.datasets[1].data = historyMarketIndex;
+    chart.update();
+  }
+}
+
+// Dagslogg
+function renderDailyLog(){
+  const container = document.getElementById('dailyLog');
+  container.innerHTML = '';
+  dailySummaries.slice(-8).reverse().forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'entry';
+    div.innerHTML = `
+      <h4>${s.day} — ${s.totalChangePct>0? '📈' : (s.totalChangePct<0? '📉':'⏸️')} ${s.totalChangePct.toFixed(1)}%</h4>
+      <div><strong>Hendelser:</strong> ${s.events.join(', ')}</div>
+      <div><strong>Topp:</strong> ${s.winners.join(', ') || '—'}</div>
+      <div><strong>Bunn:</strong> ${s.losers.join(', ') || '—'}</div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// Eksport CSV
+function exportCsv(){
+  const rows = [['Dag','Total verdi','Markedsindeks']];
+  for (let i=0;i<historyLabels.length;i++){
+    rows.push([historyLabels[i], historyPortfolio[i], historyMarketIndex[i]]);
+  }
+  const csv = rows.map(r=>r.join(',')).join('\\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'innherred-bors-historikk.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ---------- Feed helpers ----------
 function pushNews(text){
   newsBuffer.unshift(text);
   if (newsBuffer.length > NEWS_LIMIT_BUFFER) {
@@ -243,7 +346,7 @@ function pushNews(text){
 }
 
 function parseChange(evt){
-  const m = evt.match(/(opp|ned)\s+(\d+)%/);
+  const m = evt.match(/(opp|ned)\\s+(\\d+)%/);
   if(!m) return null;
   const dir = m[1];
   const pct = parseInt(m[2],10);
@@ -264,6 +367,7 @@ function sampleNoReplace(keys, k){
 
 function clamp(n){ return Math.max(0, n); }
 
+// ---------- Day advance ----------
 function nextDay(){
   const diff = DIFFICULTIES[currentDiff];
 
@@ -273,6 +377,11 @@ function nextDay(){
   const impacted = sampleNoReplace(Object.keys(companies), n);
   pushNews(`📅 Dag ${day}: ${n} nyhet(er) rammer ${impacted.join(", ")}`);
 
+  // for dagssammendrag
+  const evSumm = [];
+  const dayChanges = []; // [ [name, pctChange] , ... ]
+
+  // 1) Trekk og anvend nyheter for de påvirkede selskapene
   impacted.forEach(company => {
     const events = companies[company];
     const evt = events[Math.floor(Math.random()*events.length)];
@@ -281,12 +390,17 @@ function nextDay(){
       const before = stockPrices[company];
       const after = clamp(changer(before));
       stockPrices[company] = after;
+      const pct = (after/before - 1)*100;
+      dayChanges.push([company, pct]);
       pushNews(`📰 ${company}: ${evt} (fra ${fmt(before)} til ${fmt(after)})`);
+      evSumm.push(`${company}: ${evt}`);
     } else {
       pushNews(`📰 ${company}: ${evt}`);
+      evSumm.push(`${company}: ${evt}`);
     }
   });
 
+  // 2) Markedsdrift for resten (med bias)
   Object.keys(stockPrices).forEach(name => {
     if (impacted.includes(name)) return;
     const u = Math.random();
@@ -294,13 +408,29 @@ function nextDay(){
     const before = stockPrices[name];
     const after = clamp(before * (1 + driftPct/100));
     stockPrices[name] = after;
+    dayChanges.push([name, driftPct]);
   });
 
+  // Oppdater dag
   day += 1;
+
+  // Snapshot til graf & dagslogg
+  const beforeTotal = historyPortfolio.length ? historyPortfolio[historyPortfolio.length-1] : (cash + portfolioValue());
+  snapshotDay();
+  const afterTotal = historyPortfolio[historyPortfolio.length-1];
+  const totalChangePct = (afterTotal/beforeTotal - 1)*100;
+
+  // Top 3 winners/losers
+  dayChanges.sort((a,b)=>b[1]-a[1]);
+  const winners = dayChanges.slice(0,3).map(([n,p])=>`${n} (${p.toFixed(1)}%)`);
+  const losers = dayChanges.slice(-3).reverse().map(([n,p])=>`${n} (${p.toFixed(1)}%)`);
+  dailySummaries.push({ day:`Dag ${day-1}`, events:evSumm, winners, losers, totalChangePct });
+
   updateUI();
   maybeEndGame();
 }
 
+// ---------- Trading ----------
 function buy() {
   const diff = DIFFICULTIES[currentDiff];
   const fee = diff.commission;
