@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Innherred-børsen</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -60,31 +63,31 @@
 
   <header>
     <h1>📈 Innherred-børsen</h1>
-    <p>Spill dag for dag. Hver dag utløser 2–3 nyheter og litt markedssving for resten.</p>
+    <p>Handel med lokale bedrifter i Innherred-regionen. Følg nyheter, analyser markedet og bygg din portefølje.</p>
   </header>
 
   <main>
     <section id="controls" class="card">
       <div class="row">
-        <label for="companySelect">Bedrift</label>
+        <label for="companySelect">🏢 Bedrift</label>
         <select id="companySelect"></select>
       </div>
       <div class="row">
-        <label for="quantityInput">Antall</label>
+        <label for="quantityInput">📊 Antall</label>
         <input id="quantityInput" type="number" min="1" step="1" value="1">
       </div>
       <div class="row actions">
-        <button id="buyBtn">Kjøp</button>
-        <button id="sellBtn" class="ghost">Selg</button>
-        <button id="nextDayBtn" type="button">Neste dag (2–3 nyheter)</button>
+        <button id="buyBtn">📈 Kjøp</button>
+        <button id="sellBtn">📉 Selg</button>
+        <button id="nextDayBtn" type="button">⏭️ Neste dag</button>
       </div>
       <div class="row kpis">
-        <div class="kpi"><span>Dag</span><strong id="dayEl"></strong></div>
-        <div class="kpi"><span>Dager igjen</span><strong id="daysLeftEl">∞</strong></div>
-        <div class="kpi"><span>Kontanter</span><strong id="cashEl"></strong></div>
-        <div class="kpi"><span>Portefølje</span><strong id="portfolioValueEl"></strong></div>
-        <div class="kpi"><span>Total verdi</span><strong id="totalValueEl"></strong></div>
-        <div class="kpi"><span>Kurtasje</span><strong id="feeEl"></strong></div>
+        <div class="kpi"><span>📅 Dag</span><strong id="dayEl"></strong></div>
+        <div class="kpi"><span>⏰ Dager igjen</span><strong id="daysLeftEl">∞</strong></div>
+        <div class="kpi"><span>💰 Kontanter</span><strong id="cashEl"></strong></div>
+        <div class="kpi"><span>💼 Portefølje</span><strong id="portfolioValueEl"></strong></div>
+        <div class="kpi"><span>💎 Total verdi</span><strong id="totalValueEl"></strong></div>
+        <div class="kpi"><span>💸 Kurtasje</span><strong id="feeEl"></strong></div>
       </div>
     </section>
 
@@ -124,13 +127,13 @@
           </thead>
           <tbody></tbody>
         </table>
-        <p class="muted">Tips: Kurs oppdateres daglig. Kjøp billig, selg dyrt.</p>
+        <p class="muted">💡 Tips: Følg nyheter nøye og handel strategisk for å maksimere avkastningen.</p>
       </div>
     </section>
   </main>
 
   <footer>
-    <small>© Innherred-børsen – stabil med delta</small>
+    <small>© 2025 Innherred-børsen – Din lokale finansielle terminal</small>
   </footer>
 
   <script src="app.js"></script>
