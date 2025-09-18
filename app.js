@@ -15,6 +15,10 @@ let stockPrices = {
   "Farmors Fargerike Verden": 80
 };
 let holdings = {}, cash = 1000, day = 1;
+
+let prevPrices = {};            // forrige dags kurs per selskap
+let lastChangePct = {};         // siste %-endring per selskap (mot forrige dag)
+
 let totalDays = null; // 10/20/30 eller null
 let currentModeKey = null;
 let currentDiff = 'easy'; // easy|normal|hard
@@ -82,6 +86,8 @@ async function tryLoadExternal(){
 }
 
 function resetState(){
+  prevPrices = {};
+  lastChangePct = {};
   holdings = {};
   newsBuffer = [];
   day = 1;
@@ -151,164 +157,25 @@ function populateSelect() {
   });
 }
 
+
 function updatePricesPanel() {
   const container = document.getElementById('prices');
   container.innerHTML = '';
   Object.entries(stockPrices)
     .sort((a,b)=>a[0].localeCompare(b[0]))
     .forEach(([name,price])=>{
+      const prev = prevPrices[name] ?? price;
+      const pct = prev ? ((price/prev)-1)*100 : 0;
+      lastChangePct[name] = pct;
+      let arrow = '⏸️', deltaClass='flat';
+      if (pct > 0.05) { arrow='▲'; deltaClass='up'; }
+      else if (pct < -0.05) { arrow='▼'; deltaClass='down'; }
       const row = document.createElement('div');
       row.className = 'price';
-      row.innerHTML = `<span>${name}</span><strong>${fmt(price)} </strong>`;
+      row.innerHTML = `<span class="name"><span class="arrow ${deltaClass}">${arrow}</span>${name}</span>
+                       <strong>${fmt(price)}</strong>
+                       <span class="delta ${deltaClass}">${pct>=0?'+':''}${pct.toFixed(1)}%</span>`;
       container.appendChild(row);
     });
 }
 
-function portfolioValue() { return Object.entries(holdings).reduce((s,[n,q]) => s + q*(stockPrices[n] ?? 100), 0); }
-
-function updatePortfolioTable() {
-  const tbody = document.querySelector('#portfolioTable tbody');
-  tbody.innerHTML = '';
-  Object.entries(holdings).filter(([_,q])=>q>0).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([name,qty])=>{
-    const tr = document.createElement('tr');
-    const value = qty*(stockPrices[name] ?? 100);
-    tr.innerHTML = `<td>${name}</td><td>${qty}</td><td>${fmt(stockPrices[name] ?? 100)}</td><td>${fmt(value)}</td>`;
-    tbody.appendChild(tr);
-  });
-}
-
-function updateKPIs() {
-  document.getElementById('dayEl').textContent = day;
-  document.getElementById('daysLeftEl').textContent = totalDays ? (totalDays - (day-1)) : '∞';
-  document.getElementById('cashEl').textContent = fmt(cash);
-  const p = portfolioValue();
-  document.getElementById('portfolioValueEl').textContent = fmt(p);
-  document.getElementById('totalValueEl').textContent = fmt(p + cash);
-  document.getElementById('feeEl').textContent = `${(DIFFICULTIES[currentDiff].commission*100).toFixed(1)}%`;
-}
-
-function updateSelectLabels(){
-  const select = document.getElementById('companySelect');
-  [...select.options].forEach(opt => {
-    const name = opt.value;
-    opt.textContent = `${name} (${fmt(stockPrices[name] ?? 100)})`;
-  });
-}
-
-function renderFeed(){
-  const list = document.getElementById('newsItems');
-  list.innerHTML = '';
-  const visible = newsBuffer.slice(0, NEWS_LIMIT_VISIBLE);
-  visible.forEach(text => {
-    const item = document.createElement('div');
-    item.className = 'news';
-    item.textContent = text;
-    list.appendChild(item);
-  });
-  document.getElementById('visibleCount').textContent = visible.length;
-  document.getElementById('totalCount').textContent = newsBuffer.length;
-}
-
-function updateUI(){
-  updatePricesPanel();
-  updatePortfolioTable();
-  updateKPIs();
-  updateSelectLabels();
-  renderFeed();
-}
-
-function pushNews(text){
-  newsBuffer.unshift(text);
-  if (newsBuffer.length > NEWS_LIMIT_BUFFER) newsBuffer = newsBuffer.slice(0, NEWS_LIMIT_BUFFER);
-}
-
-function parseChange(evt){
-  const m = evt.match(/(opp|ned)\s+(\d+)%/);
-  if(!m) return null;
-  const dir = m[1], pct = parseInt(m[2],10);
-  return dir === 'opp' ? (p)=>p*(1+pct/100) : (p)=>p*(1-pct/100);
-}
-
-function sampleNoReplace(keys, k){
-  const pool = [...keys], out = [];
-  while(out.length < k && pool.length){
-    const i = Math.floor(Math.random()*pool.length);
-    out.push(pool[i]); pool.splice(i,1);
-  }
-  return out;
-}
-
-function nextDay(){
-  const diff = DIFFICULTIES[currentDiff];
-  const n = newsCountToday();
-  const dayBias = (Math.random()*2 - 1) * diff.dayBiasRange;
-
-  const impacted = sampleNoReplace(Object.keys(companies), n);
-  pushNews(`📅 Dag ${day}: ${n} nyhet(er) rammer ${impacted.join(', ')}`);
-
-  impacted.forEach(company => {
-    const events = companies[company];
-    const evt = events[Math.floor(Math.random()*events.length)];
-    const changer = parseChange(evt);
-    if (changer) {
-      const before = stockPrices[company] ?? 100;
-      const after = clamp(changer(before));
-      stockPrices[company] = after;
-      pushNews(`📰 ${company}: ${evt} (fra ${fmt(before)} til ${fmt(after)})`);
-    } else {
-      pushNews(`📰 ${company}: ${evt}`);
-    }
-  });
-
-  Object.keys(stockPrices).forEach(name => {
-    if (impacted.includes(name)) return;
-    const u = Math.random();
-    const driftPct = diff.driftMin + u*(diff.driftMax - diff.driftMin) + dayBias;
-    const before = stockPrices[name] ?? 100;
-    const after = clamp(before * (1 + driftPct/100));
-    stockPrices[name] = after;
-  });
-
-  day += 1;
-  updateUI();
-  maybeEndGame();
-}
-
-function buy() {
-  const diff = DIFFICULTIES[currentDiff];
-  const fee = diff.commission;
-  const company = document.getElementById('companySelect').value;
-  const qty = Math.max(1, Math.floor(parseInt(document.getElementById('quantityInput').value,10) || 0));
-  const price = stockPrices[company] ?? 100;
-  const cost = qty * price * (1 + fee);
-  if (cost > cash) { pushNews(`⚠️ Ikke nok kontanter: ${qty} x ${company} @ ${fmt(price)} + kurtasje ${(fee*100).toFixed(1)}% = ${fmt(cost)}.`); renderFeed(); return; }
-  cash -= cost; holdings[company] += qty;
-  pushNews(`✅ Kjøp: ${qty} x ${company} @ ${fmt(price)} (kostnad ${fmt(cost)} inkl. kurtasje).`);
-  updateUI();
-}
-
-function sell() {
-  const diff = DIFFICULTIES[currentDiff];
-  const fee = diff.commission;
-  const company = document.getElementById('companySelect').value;
-  const qty = Math.max(1, Math.floor(parseInt(document.getElementById('quantityInput').value,10) || 0));
-  if ((holdings[company]||0) < qty) { pushNews(`⚠️ Du eier ikke nok ${company}-aksjer til å selge ${qty}.`); renderFeed(); return; }
-  const price = stockPrices[company] ?? 100;
-  const proceeds = qty * price * (1 - fee);
-  holdings[company] -= qty; cash += proceeds;
-  pushNews(`💰 Salg: ${qty} x ${company} @ ${fmt(price)} (inntekt ${fmt(proceeds)} etter kurtasje).`);
-  updateUI();
-}
-
-
-/* --- Debounce for Next Day --- */
-function nextDayDebounced(){
-  const btn = document.getElementById('nextDayBtn');
-  if (btn.disabled) return;
-  btn.disabled = true;
-  try {
-    nextDay();
-  } finally {
-    setTimeout(()=>{ btn.disabled = false; }, 300);
-  }
-}
