@@ -11,7 +11,7 @@
   <section id="startScreen" class="overlay visible">
     <div class="modal">
       <h1>📈 Innherred-børsen</h1>
-      <p>Velg spill-lengde, vanskelighetsgrad og scenario.</p>
+      <p>Velg spill-lengde og vanskelighetsgrad.</p>
 
       <div class="opt-grid">
         <div class="opt-group">
@@ -22,22 +22,7 @@
             <button class="diffBtn" data-diff="hard">Hard</button>
           </div>
           <small class="muted">
-            Lett: 1500 kr, lav kurtasje og roligere marked. Hard: 800 kr, høy kurtasje og røffere marked.
-          </small>
-        </div>
-
-        <div class="opt-group">
-          <h3>Scenario</h3>
-          <div class="segmented wrap">
-            <button class="scenBtn active" data-scen="classic">Klassisk</button>
-            <button class="scenBtn" data-scen="havvind">Havvind-år</button>
-            <button class="scenBtn" data-scen="kulturboom">Kulturboom</button>
-            <button class="scenBtn" data-scen="dagligvare">Dagligvare-krig</button>
-            <button class="scenBtn" data-scen="byggeboom">Byggeboom</button>
-            <button class="scenBtn" data-scen="toffetider">Tøffe tider</button>
-          </div>
-          <small class="muted">
-            Scenarioer påvirker hvem som får nyheter og helningsfaktor i markedet.
+            Lett: 1500 kr, 0,5% kurtasje, roligere marked. Hard: 800 kr, 1,5% kurtasje, røffere marked.
           </small>
         </div>
       </div>
@@ -60,7 +45,6 @@
       <div class="summary">
         <p><strong>Modus:</strong> <span id="sumMode"></span></p>
         <p><strong>Vanskelighetsgrad:</strong> <span id="sumDiff"></span></p>
-        <p><strong>Scenario:</strong> <span id="sumScen"></span></p>
         <p><strong>Dager spilt:</strong> <span id="sumDays"></span></p>
         <p><strong>Kontanter:</strong> <span id="sumCash"></span></p>
         <p><strong>Portefølje:</strong> <span id="sumPortfolio"></span></p>
@@ -92,7 +76,7 @@
       <div class="row actions">
         <button id="buyBtn">Kjøp</button>
         <button id="sellBtn" class="ghost">Selg</button>
-        <button id="nextDayBtn">Neste dag (2–3 nyheter)</button>
+        <button id="nextDayBtn" type="button">Neste dag (2–3 nyheter)</button>
       </div>
       <div class="row kpis">
         <div class="kpi"><span>Dag</span><strong id="dayEl"></strong></div>

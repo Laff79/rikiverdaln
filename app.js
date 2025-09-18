@@ -8,7 +8,6 @@ let day = 1;
 let totalDays = null; // 10,20,30 eller null (uendelig)
 let currentModeKey = null; // '10','20','30','inf'
 let currentDiff = 'easy';     // easy|normal|hard
-let currentScenario = 'classic'; // classic|havvind|kulturboom|dagligvare|byggeboom|toffetider
 
 // Nyhetsbuffer for feed
 const NEWS_LIMIT_VISIBLE = 30;
@@ -39,22 +38,6 @@ const DIFFICULTIES = {
   hard:   { startCash: 800, commission:0.015, driftMin:-2.0, driftMax: 1.2, dayBiasRange:0.25 }
 };
 
-// Scenarioer: vekter for sannsynlighet og helningsbias på markedet
-function baseWeights() {
-  const w = {};
-  Object.keys(startPrices).forEach(name => w[name] = 1.0);
-  return w;
-}
-const SCENARIOS = {
-  classic:     { label:"Klassisk",       bias:0.00, weights: baseWeights() },
-  havvind:     { label:"Havvind-år",     bias:0.15, weights: (()=>{ const w=baseWeights(); w["Aker Verdal"]=3.0; w["Wow Medialab"]=1.4; w["Lag"]=1.2; return w; })() },
-  kulturboom:  { label:"Kulturboom",     bias:0.10, weights: (()=>{ const w=baseWeights(); w["Stiklestad Kulturhus"]=2.5; w["Farmors Fargerike Verden"]=2.0; w["Verdal Hotell"]=1.3; return w; })() },
-  dagligvare:  { label:"Dagligvare-krig",bias:0.05, weights: (()=>{ const w=baseWeights(); w["Coop Extra Verdal"]=2.0; w["Prix Ørmelen"]=2.0; return w; })() },
-  byggeboom:   { label:"Byggeboom",      bias:0.12, weights: (()=>{ const w=baseWeights(); w["Lag"]=2.5; return w; })() },
-  toffetider:  { label:"Tøffe tider",    bias:-0.25,weights: baseWeights() }
-};
-
-// Antall nyheter per dag (2 eller 3)
 function newsCountToday() { return Math.random() < 0.5 ? 2 : 3; }
 
 async function loadData() {
@@ -67,14 +50,6 @@ async function loadData() {
       document.querySelectorAll('.diffBtn').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
       currentDiff = btn.dataset.diff;
-      renderHighscores();
-    });
-  });
-  document.querySelectorAll('.scenBtn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      document.querySelectorAll('.scenBtn').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      currentScenario = btn.dataset.scen;
       renderHighscores();
     });
   });
@@ -94,6 +69,11 @@ async function loadData() {
   document.getElementById("compactToggle").addEventListener("change", (e)=>{
     document.getElementById("newsItems").classList.toggle("compact", e.target.checked);
   });
+
+  // knapper
+  document.getElementById("nextDayBtn").addEventListener("click", nextDay);
+  document.getElementById("buyBtn").addEventListener("click", buy);
+  document.getElementById("sellBtn").addEventListener("click", sell);
 
   showStart();
 }
@@ -137,18 +117,13 @@ function renderHighscores(){
   const labels = {'10':'10 dager','20':'20 dager','30':'30 dager','inf':'Uendelig'};
   const hsDiv = document.getElementById('highscores');
   const modes = ['10','20','30','inf'];
+  const dLabel = ({easy:'Lett', normal:'Normal', hard:'Hard'})[currentDiff];
   const lines = modes.map(m=>{
-    const key = hsKey(m, currentDiff, currentScenario);
+    const key = `ib_highscore_${m}_${currentDiff}`;
     const val = localStorage.getItem(key);
-    const dLabel = ({easy:'Lett', normal:'Normal', hard:'Hard'})[currentDiff];
-    const sLabel = SCENARIOS[currentScenario].label;
-    return `<div>Highscore ${labels[m]} – ${dLabel} – ${sLabel}: <strong>${val ? Number(val).toFixed(0)+' kr' : '–'}</strong></div>`;
+    return `<div>Highscore ${labels[m]} – ${dLabel}: <strong>${val ? Number(val).toFixed(0)+' kr' : '–'}</strong></div>`;
   });
   hsDiv.innerHTML = lines.join('');
-}
-
-function hsKey(modeKey, diff, scen){
-  return `ib_highscore_${modeKey}_${diff}_${scen}`;
 }
 
 function maybeEndGame(){
@@ -158,13 +133,12 @@ function maybeEndGame(){
 
     document.getElementById('sumMode').textContent = (currentModeKey==='inf'?'Uendelig': currentModeKey+' dager');
     document.getElementById('sumDiff').textContent = ({easy:'Lett', normal:'Normal', hard:'Hard'})[currentDiff];
-    document.getElementById('sumScen').textContent = SCENARIOS[currentScenario].label;
     document.getElementById('sumDays').textContent = totalDays;
     document.getElementById('sumCash').textContent = fmt(cash);
     document.getElementById('sumPortfolio').textContent = fmt(p);
     document.getElementById('sumTotal').textContent = fmt(total);
 
-    const key = hsKey(currentModeKey || '20', currentDiff, currentScenario);
+    const key = `ib_highscore_${currentModeKey || '20'}_${currentDiff}`;
     const prev = Number(localStorage.getItem(key) || 0);
     let note = '';
     if (!prev || total > prev){
@@ -174,7 +148,6 @@ function maybeEndGame(){
       note = `Beste til nå: ${prev.toFixed(0)} kr`;
     }
     document.getElementById('sumHighscore').textContent = note;
-    renderHighscores();
     document.getElementById('endScreen').classList.add('visible');
   }
 }
@@ -277,51 +250,29 @@ function parseChange(evt){
   return dir === "opp" ? (p)=>p*(1+pct/100) : (p)=>p*(1-pct/100);
 }
 
-// vektet trekk av bedrifter (uten erstatning)
-function weightedSampleNoReplace(weightMap, k){
-  const names = Object.keys(weightMap);
-  const weights = names.map(n=>Math.max(0.0001, weightMap[n]));
-  const chosen = [];
-  const used = new Set();
-
-  function pickOne(){
-    let total = 0;
-    for (let i=0;i<names.length;i++){ if(!used.has(names[i])) total += weights[i]; }
-    let r = Math.random() * total;
-    for (let i=0;i<names.length;i++){
-      const n = names[i];
-      if (used.has(n)) continue;
-      r -= weights[i];
-      if (r <= 0) return n;
-    }
-    // fallback
-    for (let i=0;i<names.length;i++){ if(!used.has(names[i])) return names[i]; }
+// tilfeldig bedrifter (uten erstatning)
+function sampleNoReplace(keys, k){
+  const pool = [...keys];
+  const out = [];
+  while(out.length < k && pool.length){
+    const idx = Math.floor(Math.random()*pool.length);
+    out.push(pool[idx]);
+    pool.splice(idx,1);
   }
-
-  while (chosen.length < k && chosen.length < names.length){
-    const n = pickOne();
-    chosen.push(n);
-    used.add(n);
-  }
-  return chosen;
+  return out;
 }
 
 function clamp(n){ return Math.max(0, n); }
 
 function nextDay(){
   const diff = DIFFICULTIES[currentDiff];
-  const scen = SCENARIOS[currentScenario];
 
-  // hvor mange nyheter
   const n = newsCountToday();
-  // daglig bias (tilfeldig ±) + scenario bias
-  const dayBias = (Math.random()*2 - 1) * diff.dayBiasRange + scen.bias;
+  const dayBias = (Math.random()*2 - 1) * diff.dayBiasRange;
 
-  // vektet valg av bedrifter for nyheter
-  const impacted = weightedSampleNoReplace(scen.weights, n);
+  const impacted = sampleNoReplace(Object.keys(companies), n);
   pushNews(`📅 Dag ${day}: ${n} nyhet(er) rammer ${impacted.join(", ")}`);
 
-  // 1) Trekk og anvend nyheter for de påvirkede selskapene
   impacted.forEach(company => {
     const events = companies[company];
     const evt = events[Math.floor(Math.random()*events.length)];
@@ -336,11 +287,10 @@ function nextDay(){
     }
   });
 
-  // 2) Markedsdrift for resten (med bias)
   Object.keys(stockPrices).forEach(name => {
     if (impacted.includes(name)) return;
     const u = Math.random();
-    const driftPct = diff.driftMin + u*(diff.driftMax - diff.driftMin) + dayBias; // legg til bias
+    const driftPct = diff.driftMin + u*(diff.driftMax - diff.driftMin) + dayBias;
     const before = stockPrices[name];
     const after = clamp(before * (1 + driftPct/100));
     stockPrices[name] = after;
@@ -388,9 +338,5 @@ function sell() {
   pushNews(`💰 Salg: ${qty} x ${company} @ ${fmt(price)} (inntekt ${fmt(proceeds)} etter kurtasje).`);
   updateUI();
 }
-
-document.getElementById("nextDayBtn").addEventListener("click", nextDay);
-document.getElementById("buyBtn").addEventListener("click", buy);
-document.getElementById("sellBtn").addEventListener("click", sell);
 
 loadData();
