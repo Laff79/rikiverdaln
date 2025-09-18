@@ -61,3 +61,37 @@ button:disabled{opacity:.6;cursor:not-allowed;filter:grayscale(.2)}
   .modes{grid-template-columns:1fr}
   .opt-grid{grid-template-columns:1fr}
 }
+
+
+/* --- Aligned columns for Aksjekurser --- */
+#prices { font-variant-numeric: tabular-nums; }  /* even digit widths */
+
+.price{
+  display: grid;
+  grid-template-columns: 1fr 90px 76px; /* name | price | delta */
+  align-items: center;
+  gap: 8px;
+}
+
+.price .name{
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.price strong{
+  justify-self: end;          /* right-align price */
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.price .delta{
+  justify-self: end;          /* right-align badge */
+  text-align: right;
+  min-width: 76px;            /* lock width so it doesn't jitter */
+}
+
+@media (max-width: 640px){
+  .price{ grid-template-columns: 1fr 80px 70px; }
+  .price .delta{ min-width: 70px; font-size: 11px; padding: 1px 6px; }
+}
