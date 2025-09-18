@@ -27,14 +27,19 @@ label.compact{font-size:12px;color:var(--muted)}
 #newsItems{max-height:320px;overflow-y:auto;border:1px dashed var(--border);border-radius:8px;padding:8px;background:#0b1220}
 #newsItems.compact .news{padding:4px 6px;font-size:12px}
 .news{padding:8px 10px;border-bottom:1px dashed var(--border)}
-.price{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--border)}
-.price .up{color:var(--green)} .price .down{color:var(--red)}
+.price{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--border);align-items:center;gap:10px}
+.price .name{display:flex;gap:8px;align-items:center}
+.price .arrow{font-size:12px}
+/* delta badges */
+.delta{padding:2px 6px;border-radius:999px;font-size:12px;border:1px solid var(--border)}
+.delta.up{color:#22c55e;border-color:#14532d;background:rgba(34,197,94,.08)}
+.delta.down{color:#ef4444;border-color:#7f1d1d;background:rgba(239,68,68,.08)}
+.delta.flat{color:#94a3b8;background:rgba(148,163,184,.08)}
 table{width:100%;border-collapse:collapse}
 th,td{padding:8px;border-bottom:1px dashed var(--border);text-align:left}
 .muted{color:var(--muted)}
 .feed-footer{margin-top:6px;color:var(--muted)}
 footer{padding:16px;text-align:center;color:var(--muted);border-top:1px solid var(--border);margin-top:20px}
-
 /* Overlays */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
 .overlay.visible{display:flex}
@@ -50,19 +55,9 @@ footer{padding:16px;text-align:center;color:var(--muted);border-top:1px solid va
 .modal .actions{display:flex;gap:10px;justify-content:center;margin-top:10px}
 button.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
 button.ghost:hover{background:#0b1220}
-
+button:disabled{opacity:.6;cursor:not-allowed;filter:grayscale(.2)}
 @media (max-width:900px){
   #panel{grid-template-columns:1fr}
   .modes{grid-template-columns:1fr}
   .opt-grid{grid-template-columns:1fr}
 }
-
-button:disabled{opacity:.6;cursor:not-allowed;filter:grayscale(.2)}
-
-/* delta badges */
-.delta{padding:2px 6px;border-radius:999px;font-size:12px;border:1px solid var(--border)}
-.delta.up{color:#22c55e;border-color:#14532d;background:rgba(34,197,94,.08)}
-.delta.down{color:#ef4444;border-color:#7f1d1d;background:rgba(239,68,68,.08)}
-.delta.flat{color:#94a3b8;background:rgba(148,163,184,.08)}
-.price .name{display:flex;gap:8px;align-items:center}
-.price .arrow{font-size:12px}
