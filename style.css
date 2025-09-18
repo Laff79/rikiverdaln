@@ -56,3 +56,5 @@ button.ghost:hover{background:#0b1220}
   .modes{grid-template-columns:1fr}
   .opt-grid{grid-template-columns:1fr}
 }
+
+button:disabled{opacity:.6;cursor:not-allowed;filter:grayscale(.2)}

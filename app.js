@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('newsItems').classList.toggle('compact', e.target.checked);
   });
 
-  document.getElementById('nextDayBtn').addEventListener('click', nextDay);
+  document.getElementById('nextDayBtn').addEventListener('click', nextDayDebounced);
   document.getElementById('buyBtn').addEventListener('click', buy);
   document.getElementById('sellBtn').addEventListener('click', sell);
 
@@ -298,4 +298,17 @@ function sell() {
   holdings[company] -= qty; cash += proceeds;
   pushNews(`💰 Salg: ${qty} x ${company} @ ${fmt(price)} (inntekt ${fmt(proceeds)} etter kurtasje).`);
   updateUI();
+}
+
+
+/* --- Debounce for Next Day --- */
+function nextDayDebounced(){
+  const btn = document.getElementById('nextDayBtn');
+  if (btn.disabled) return;
+  btn.disabled = true;
+  try {
+    nextDay();
+  } finally {
+    setTimeout(()=>{ btn.disabled = false; }, 300);
+  }
 }
