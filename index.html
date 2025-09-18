@@ -22,7 +22,7 @@
             <button class="diffBtn" data-diff="hard">Hard</button>
           </div>
           <small class="muted">
-            Lett: 1500 kr, 0,5% kurtasje, roligere marked. Hard: 800 kr, 1,5% kurtasje, røffere marked.
+            Lett: 1500 kr (0,5% kurtasje) • Normal: 1000 kr (1,0%) • Hard: 800 kr (1,5%)
           </small>
         </div>
       </div>
@@ -108,22 +108,28 @@
         <div id="prices"></div>
       </div>
 
-      <div id="analytics" class="card">
-        <div class="analytics-header">
-          <h3>Portefølje-graf & Dagslogg</h3>
-          <button id="exportCsvBtn" class="small ghost">Eksporter CSV</button>
-        </div>
-        <canvas id="chart" height="120"></canvas>
-        <div id="dailyLog" class="daily-log"></div>
+      <div id="portfolio" class="card">
+        <h3>Portefølje</h3>
+        <table id="portfolioTable">
+          <thead>
+            <tr>
+              <th>Bedrift</th>
+              <th>Antall</th>
+              <th>Kurs</th>
+              <th>Verdi</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <p class="muted">Tips: Kurs oppdateres daglig. Kjøp billig, selg dyrt.</p>
       </div>
     </section>
   </main>
 
   <footer>
-    <small>© Innherred-børsen – prototyp</small>
+    <small>© Innherred-børsen – stabil build</small>
   </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
