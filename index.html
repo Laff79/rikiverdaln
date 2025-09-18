@@ -7,6 +7,73 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Startskjerm -->
+  <section id="startScreen" class="overlay visible">
+    <div class="modal">
+      <h1>📈 Innherred-børsen</h1>
+      <p>Velg spill-lengde, vanskelighetsgrad og scenario.</p>
+
+      <div class="opt-grid">
+        <div class="opt-group">
+          <h3>Vanskelighetsgrad</h3>
+          <div class="segmented">
+            <button class="diffBtn active" data-diff="easy">Lett</button>
+            <button class="diffBtn" data-diff="normal">Normal</button>
+            <button class="diffBtn" data-diff="hard">Hard</button>
+          </div>
+          <small class="muted">
+            Lett: 1500 kr, lav kurtasje og roligere marked. Hard: 800 kr, høy kurtasje og røffere marked.
+          </small>
+        </div>
+
+        <div class="opt-group">
+          <h3>Scenario</h3>
+          <div class="segmented wrap">
+            <button class="scenBtn active" data-scen="classic">Klassisk</button>
+            <button class="scenBtn" data-scen="havvind">Havvind-år</button>
+            <button class="scenBtn" data-scen="kulturboom">Kulturboom</button>
+            <button class="scenBtn" data-scen="dagligvare">Dagligvare-krig</button>
+            <button class="scenBtn" data-scen="byggeboom">Byggeboom</button>
+            <button class="scenBtn" data-scen="toffetider">Tøffe tider</button>
+          </div>
+          <small class="muted">
+            Scenarioer påvirker hvem som får nyheter og helningsfaktor i markedet.
+          </small>
+        </div>
+      </div>
+
+      <div class="modes">
+        <button class="modeBtn" data-days="10">Kort — 10 dager</button>
+        <button class="modeBtn" data-days="20">Standard — 20 dager</button>
+        <button class="modeBtn" data-days="30">Langt — 30 dager</button>
+        <button class="modeBtn" data-days="∞">Uendelig — highscore</button>
+      </div>
+
+      <div id="highscores" class="muted"></div>
+    </div>
+  </section>
+
+  <!-- Sluttskjerm -->
+  <section id="endScreen" class="overlay">
+    <div class="modal">
+      <h2>🏁 Resultat</h2>
+      <div class="summary">
+        <p><strong>Modus:</strong> <span id="sumMode"></span></p>
+        <p><strong>Vanskelighetsgrad:</strong> <span id="sumDiff"></span></p>
+        <p><strong>Scenario:</strong> <span id="sumScen"></span></p>
+        <p><strong>Dager spilt:</strong> <span id="sumDays"></span></p>
+        <p><strong>Kontanter:</strong> <span id="sumCash"></span></p>
+        <p><strong>Portefølje:</strong> <span id="sumPortfolio"></span></p>
+        <p><strong>Total verdi:</strong> <span id="sumTotal"></span></p>
+        <p class="muted" id="sumHighscore"></p>
+      </div>
+      <div class="actions">
+        <button id="restartBtn">Spill igjen (samme innstillinger)</button>
+        <button id="toStartBtn" class="ghost">Til start</button>
+      </div>
+    </div>
+  </section>
+
   <header>
     <h1>📈 Innherred-børsen</h1>
     <p>Spill dag for dag. Hver dag utløser 2–3 nyheter og litt markedssving for resten.</p>
@@ -29,9 +96,11 @@
       </div>
       <div class="row kpis">
         <div class="kpi"><span>Dag</span><strong id="dayEl"></strong></div>
+        <div class="kpi"><span>Dager igjen</span><strong id="daysLeftEl">∞</strong></div>
         <div class="kpi"><span>Kontanter</span><strong id="cashEl"></strong></div>
         <div class="kpi"><span>Portefølje</span><strong id="portfolioValueEl"></strong></div>
         <div class="kpi"><span>Total verdi</span><strong id="totalValueEl"></strong></div>
+        <div class="kpi"><span>Kurtasje</span><strong id="feeEl"></strong></div>
       </div>
     </section>
 
