@@ -10,7 +10,6 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Startskjerm -->
   <section id="startScreen" class="overlay visible">
     <div class="modal">
       <h1>📈 Innherred-børsen</h1>
@@ -41,7 +40,6 @@
     </div>
   </section>
 
-  <!-- Sluttskjerm -->
   <section id="endScreen" class="overlay">
     <div class="modal">
       <h2>🏁 Resultat</h2>
@@ -71,6 +69,11 @@
       <div class="row">
         <label for="companySelect">🏢 Bedrift</label>
         <select id="companySelect"></select>
+      </div>
+      <div id="tradeInfo">
+        <p><span>Din Beholdning:</span> <strong id="currentHoldingEl">0</strong></p>
+        <p><span>Maks kjøp:</span> <strong id="maxBuyEl">N/A</strong></p>
+        <p><span>Transaksjonskostnad:</span> <strong id="costPreviewEl">N/A</strong></p>
       </div>
       <div class="row">
         <label for="quantityInput">📊 Antall</label>
@@ -107,8 +110,14 @@
       </div>
 
       <div id="stockPrices" class="card">
-        <div class="row" style="justify-content:space-between;align-items:center">
+        <div class="price-header">
           <h3 style="margin:0">Aksjekurser</h3>
+          <div class="sort-options">
+            <small>Sorter etter:</small>
+            <button data-sort="name" class="sortBtn active">Navn</button>
+            <button data-sort="price" class="sortBtn">Kurs</button>
+            <button data-sort="change" class="sortBtn">Endring (%)</button>
+          </div>
           <small id="companyCount" class="muted"></small>
         </div>
         <div id="prices"></div>
