@@ -1,4 +1,3 @@
-
 // ---- Data (innebygd fallback) ----
 let companies = {
   "Stiklestad Kulturhus": [
@@ -319,6 +318,42 @@ let totalDays = null; // 10/20/30 eller null
 let currentModeKey = null;
 let currentDiff = 'easy'; // easy|normal|hard
 
+// New Global State
+let priceHistory = {}; // Stores { day: { company: price } }
+let impactedCompanies = [];
+let currentSort = 'name'; // 'name', 'price', 'change'
+
+
+// Constants
+const VOLATILITY_FACTOR = 0.10; // News impact can vary by +/- 10%
+const DEPENDENCIES = {
+    // Primary Company: [{ dependent: 'Other Company', keywords: ['keyword'], effect: 0.10 }]
+    "Wow Medialab": [
+        { dependent: "Aker Verdal", keywords: ["Aker"], effect: 0.15 }, // Samarbeid med Aker om VR-trening -> Aker gets +15% of the news-effect (if positive)
+        { dependent: "Prix Ørmelen", keywords: ["Prix Ørmelen"], effect: 0.05 },
+    ],
+    "Verdal IL": [
+        { dependent: "Prix Ørmelen", keywords: ["Prix Ørmelen"], effect: 0.05 },
+    ],
+    "Farmors Fargerike Verden": [
+        { dependent: "Wow Medialab", keywords: ["Wow Medialab"], effect: 0.10 },
+        { dependent: "Aker Verdal", keywords: ["Aker Verdal", "kantine"], effect: 0.05 },
+    ],
+    "NAV Verdal": [
+        { dependent: "Veksttorget", keywords: ["NAV"], effect: 0.10 },
+    ],
+    "Stiklestad Kulturhus": [
+        { dependent: "NAV Verdal", keywords: ["Nevroser"], effect: 0.10 }, // Tiltak for En Dans På Nevroser
+        { dependent: "Verdal Hotell", keywords: ["Festival", "juleshowet"], effect: 0.15 },
+        { dependent: "Farmors Fargerike Verden", keywords: ["maleriutstilling"], effect: 0.05 },
+    ],
+    "Veksttorget": [
+        { dependent: "Wow Medialab", keywords: ["Wow Medialab"], effect: 0.10 },
+        { dependent: "NAV Verdal", keywords: ["NAV"], effect: 0.10 }
+    ]
+};
+
+
 // debounce helper
 function debounceNext(fn){
   const btn = document.getElementById('nextDayBtn');
@@ -339,7 +374,7 @@ const DIFFICULTIES = {
 
 function newsCountToday() { return Math.random() < 0.5 ? 2 : 3; }
 function fmt(n) { return `${n.toFixed(0)} kr`; }
-function clamp(n) { return Math.max(0, n); }
+function clamp(n) { return Math.max(1, n); } // Clamp at 1 kr, not 0
 
 document.addEventListener('DOMContentLoaded', () => {
   // try external dataset, but always keep fallback if it fails
@@ -355,7 +390,20 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.target.classList.contains('modeBtn')) {
         startGame(e.target.dataset.days);
       }
+      // NEW: Sorting handler
+      if (e.target.classList.contains('sortBtn')) {
+        document.querySelectorAll('.sortBtn').forEach(b=>b.classList.remove('active'));
+        e.target.classList.add('active');
+        currentSort = e.target.dataset.sort;
+        updatePricesPanel();
+      }
     });
+
+    // NEW: Real-time trade update listener
+    document.getElementById('quantityInput').addEventListener('input', updateTradePreview);
+    document.getElementById('companySelect').addEventListener('change', updateTradePreview);
+
+
     document.getElementById('restartBtn').addEventListener('click', () => {
       const key = currentModeKey || '20'; startGame(key === 'inf' ? '∞' : key);
     });
@@ -388,6 +436,8 @@ function resetState(){
   prevPrices = {}; lastChangePct = {};
   cash = DIFFICULTIES[currentDiff].startCash;
   Object.keys(companies).forEach(n => holdings[n] = 0);
+  priceHistory = {}; // NEW: Reset history
+  impactedCompanies = []; // NEW: Reset impacts
 }
 
 function showStart(){
@@ -406,6 +456,11 @@ function startGame(daysChoice){
   document.getElementById('startScreen').classList.remove('visible');
   document.getElementById('endScreen').classList.remove('visible');
   resetState();
+  // Set initial prices at day 1 start
+  Object.keys(companies).forEach(name => {
+      stockPrices[name] = stockPrices[name] ?? 100;
+      prevPrices[name] = stockPrices[name];
+  });
   updateUI();
 }
 
@@ -450,31 +505,93 @@ function populateSelect() {
   names.forEach(name => {
     const option = document.createElement('option');
     option.value = name;
-    option.textContent = `${name} (${fmt(stockPrices[name] ?? 100)})`;
+    // Fjernet pris fra option text
+    option.textContent = name;
     select.appendChild(option);
   });
   document.getElementById('companyCount').textContent = `${names.length} bedrifter`;
+  updateTradePreview(); // NEW: Call on select population
 }
+
+function updateTradePreview(){
+  const diff = DIFFICULTIES[currentDiff];
+  const fee = diff.commission;
+  const company = document.getElementById('companySelect').value;
+  const qtyInput = document.getElementById('quantityInput');
+  const qty = Math.max(1, Math.floor(parseInt(qtyInput.value,10) || 0));
+  const price = stockPrices[company] ?? 100;
+  const currentHolding = holdings[company] || 0;
+
+  document.getElementById('currentHoldingEl').textContent = currentHolding;
+
+  // Max Buy Calculation
+  const maxBuyQty = Math.floor(cash / (price * (1 + fee)));
+  document.getElementById('maxBuyEl').textContent = maxBuyQty > 0 ? `${maxBuyQty} (${fmt(maxBuyQty * price * (1 + fee))})` : '0';
+
+  // Cost/Proceeds Preview
+  if (qty > 0) {
+    const buyCost = qty * price * (1 + fee);
+    const sellProceeds = qty * price * (1 - fee);
+    
+    let previewHtml = '';
+    // Check if player can afford to buy
+    if (buyCost <= cash) {
+      previewHtml = `Kjøp: ${fmt(buyCost)} (Totalt)`;
+    } else if (qty <= currentHolding) {
+      // Show sell if buy is too expensive but sell is possible
+      previewHtml = `Salg: ${fmt(sellProceeds)} (Netto)`;
+    } else {
+      previewHtml = `Mangler kontanter/aksjer`;
+    }
+
+    document.getElementById('costPreviewEl').textContent = previewHtml;
+
+    // Validation for buy/sell buttons
+    document.getElementById('buyBtn').disabled = buyCost > cash;
+    document.getElementById('sellBtn').disabled = qty > currentHolding;
+
+  } else {
+    document.getElementById('costPreviewEl').textContent = 'Angi antall';
+    document.getElementById('buyBtn').disabled = true;
+    document.getElementById('sellBtn').disabled = true;
+  }
+}
+
 
 function updatePricesPanel() {
   const container = document.getElementById('prices');
   container.innerHTML = '';
-  Object.entries(stockPrices)
-    .sort((a,b)=>a[0].localeCompare(b[0]))
-    .forEach(([name,price])=>{
+
+  let sortedPrices = Object.entries(stockPrices)
+    .map(([name, price]) => {
       const prev = prevPrices[name] ?? price;
       const pct = prev ? ((price/prev)-1)*100 : 0;
       lastChangePct[name] = pct;
+      return { name, price, pct };
+    });
+
+  // Apply Sorting
+  if (currentSort === 'name') {
+    sortedPrices.sort((a, b) => a.name.localeCompare(b.name));
+  } else if (currentSort === 'price') {
+    sortedPrices.sort((a, b) => b.price - a.price); // Descending
+  } else if (currentSort === 'change') {
+    sortedPrices.sort((a, b) => b.pct - a.pct); // Descending
+  }
+
+  sortedPrices.forEach(({name, price, pct})=>{
       let arrow = '⏸️', deltaClass='flat';
       if (pct > 0.05) { arrow='▲'; deltaClass='up'; }
       else if (pct < -0.05) { arrow='▼'; deltaClass='down'; }
+
+      const isImpacted = impactedCompanies.includes(name); // NEW: Check for impact
       const row = document.createElement('div');
-      row.className = 'price';
+      row.className = `price ${isImpacted ? 'impacted' : ''}`; // NEW: Add class
       row.innerHTML = `<span class="name"><span class="arrow ${deltaClass}">${arrow}</span>${name}</span>
                        <strong>${fmt(price)}</strong>
                        <span class="delta ${deltaClass}">${pct>=0?'+':''}${pct.toFixed(1)}%</span>`;
       container.appendChild(row);
-    });
+  });
 }
 
 function portfolioValue() { return Object.entries(holdings).reduce((s,[n,q]) => s + q*(stockPrices[n] ?? 100), 0); }
@@ -518,8 +635,9 @@ function updateUI(){
   updatePricesPanel();
   updatePortfolioTable();
   updateKPIs();
-  populateSelect(); // keep count updated if dataset changes
+  populateSelect();
   renderFeed();
+  updateTradePreview(); // NEW: Call here to update holding/cost
 }
 
 function pushNews(text){
@@ -531,7 +649,18 @@ function parseChange(evt){
   const m = evt.match(/(opp|ned)\s+(\d+)%/);
   if(!m) return null;
   const dir = m[1], pct = parseInt(m[2],10);
-  return dir === 'opp' ? (p)=>p*(1+pct/100) : (p)=>p*(1-pct/100);
+
+  // NEW: Variert nyhetspåvirkning (Randomisation)
+  const deviation = (Math.random() * VOLATILITY_FACTOR * 2) - VOLATILITY_FACTOR; // +/- 10% of the effect
+  
+  // Calculate final change factor (1 + finalPct/100)
+  const baseFactor = pct / 100;
+  const deviationAmount = baseFactor * deviation;
+  const finalFactor = baseFactor + deviationAmount;
+
+  // Use base factor for reporting, but apply finalFactor for calculation
+  if (dir === 'opp') return { dir: 1, basePct: pct, finalFactor: 1 + finalFactor, func: (p) => p * (1 + finalFactor) };
+  else return { dir: -1, basePct: pct, finalFactor: -finalFactor, func: (p) => p * (1 - finalFactor) };
 }
 
 function sampleNoReplace(keys, k){
@@ -544,32 +673,70 @@ function sampleNoReplace(keys, k){
 }
 
 function nextDay(){
+  // NEW: Store full price history before changes
+  priceHistory[day] = Object.fromEntries(Object.entries(stockPrices));
+
   // snapshot previous prices at start
   prevPrices = Object.fromEntries(Object.entries(stockPrices).map(([k,v])=>[k,v]));
+  impactedCompanies = []; // NEW: Reset impacted companies list
 
   const diff = DIFFICULTIES[currentDiff];
   const n = newsCountToday();
   const dayBias = (Math.random()*2 - 1) * diff.dayBiasRange;
 
-  const impacted = sampleNoReplace(Object.keys(companies), n);
-  pushNews(`📅 Dag ${day}: ${n} nyhet(er) rammer ${impacted.join(', ')}`);
+  const primaryImpacted = sampleNoReplace(Object.keys(companies), n);
+  
+  pushNews(`📅 Dag ${day}: ${n} nyhet(er) rammer ${primaryImpacted.join(', ')}`);
 
-  impacted.forEach(company => {
+  // Track dependencies for later processing (to apply secondary effects after primary)
+  const secondaryEffects = {};
+
+  primaryImpacted.forEach(company => {
     const events = companies[company];
     const evt = events[Math.floor(Math.random()*events.length)];
-    const changer = parseChange(evt);
-    if (changer) {
+    const changeResult = parseChange(evt);
+
+    if (changeResult) {
       const before = stockPrices[company] ?? 100;
-      const after = clamp(changer(before));
+      const after = clamp(changeResult.func(before));
       stockPrices[company] = after;
-      pushNews(`📰 ${company}: ${evt} (fra ${fmt(before)} til ${fmt(after)})`);
+      impactedCompanies.push(company);
+
+      const actualPct = ((after/before)-1)*100;
+      pushNews(`📰 ${company}: ${evt} (Real endring: ${actualPct>=0?'+':''}${actualPct.toFixed(1)}%, fra ${fmt(before)} til ${fmt(after)})`); 
+
+      // NEW: Selskapsavhengigheter (Dependency check)
+      if (DEPENDENCIES[company]){
+        DEPENDENCIES[company].forEach(dep => {
+          // Check if news text contains one of the keywords
+          if (dep.keywords.some(k => evt.includes(k))){
+            const depEffect = changeResult.dir * actualPct * dep.effect; // Secondary effect is a percentage of the actual change
+            // Add to secondary effects buffer
+            secondaryEffects[dep.dependent] = (secondaryEffects[dep.dependent] || 0) + depEffect;
+          }
+        });
+      }
+
     } else {
       pushNews(`📰 ${company}: ${evt}`);
     }
   });
 
+  // Apply Secondary Effects from Dependencies
+  Object.entries(secondaryEffects).forEach(([depName, totalEffectPct]) => {
+      const before = stockPrices[depName] ?? 100;
+      const after = clamp(before * (1 + totalEffectPct / 100));
+      stockPrices[depName] = after;
+      if (!impactedCompanies.includes(depName)) impactedCompanies.push(depName); // Secondary impact is also tracked
+      pushNews(`🔗 ${depName}: Påvirket av relaterte nyheter (${totalEffectPct>=0?'+':''}${totalEffectPct.toFixed(1)}%, fra ${fmt(before)} til ${fmt(after)})`);
+  });
+
+
+  // Apply Drift (Unimpacted companies)
   Object.keys(stockPrices).forEach(name => {
-    if (impacted.includes(name)) return;
+    // Check if company was primary or secondary impacted
+    if (impactedCompanies.includes(name)) return;
+    
     const u = Math.random();
     const driftPct = diff.driftMin + u*(diff.driftMax - diff.driftMin) + dayBias;
     const before = stockPrices[name] ?? 100;
@@ -586,11 +753,19 @@ function buy() {
   const diff = DIFFICULTIES[currentDiff];
   const fee = diff.commission;
   const company = document.getElementById('companySelect').value;
-  const qty = Math.max(1, Math.floor(parseInt(document.getElementById('quantityInput').value,10) || 0));
+  const qty = Math.max(1, Math.floor(parseInt(document.getElementById('quantityInput').value,10) || 0)); 
   const price = stockPrices[company] ?? 100;
   const cost = qty * price * (1 + fee);
-  if (cost > cash) { pushNews(`⚠️ Ikke nok kontanter: ${qty} x ${company} @ ${fmt(price)} + kurtasje ${(fee*100).toFixed(1)}% = ${fmt(cost)}.`); renderFeed(); return; }
-  cash -= cost; holdings[company] += qty;
+  
+  if (cost > cash) { 
+    pushNews(`⚠️ Ikke nok kontanter: ${qty} x ${company} @ ${fmt(price)} + kurtasje ${(fee*100).toFixed(1)}% = ${fmt(cost)}.`); 
+    renderFeed(); 
+    return; 
+  }
+  
+  holdings[company] = (holdings[company] || 0) + qty;
+  cash -= cost; 
+
   pushNews(`✅ Kjøp: ${qty} x ${company} @ ${fmt(price)} (kostnad ${fmt(cost)} inkl. kurtasje).`);
   updateUI();
 }
@@ -599,11 +774,20 @@ function sell() {
   const diff = DIFFICULTIES[currentDiff];
   const fee = diff.commission;
   const company = document.getElementById('companySelect').value;
-  const qty = Math.max(1, Math.floor(parseInt(document.getElementById('quantityInput').value,10) || 0));
-  if ((holdings[company]||0) < qty) { pushNews(`⚠️ Du eier ikke nok ${company}-aksjer til å selge ${qty}.`); renderFeed(); return; }
+  const qty = Math.max(1, Math.floor(parseInt(document.getElementById('quantityInput').value,10) || 0)); 
+  
+  if ((holdings[company]||0) < qty) { 
+    pushNews(`⚠️ Du eier ikke nok ${company}-aksjer til å selge ${qty}.`); 
+    renderFeed(); 
+    return; 
+  }
+  
   const price = stockPrices[company] ?? 100;
   const proceeds = qty * price * (1 - fee);
-  holdings[company] -= qty; cash += proceeds;
+  
+  holdings[company] -= qty; 
+  cash += proceeds;
+  
   pushNews(`💰 Salg: ${qty} x ${company} @ ${fmt(price)} (inntekt ${fmt(proceeds)} etter kurtasje).`);
   updateUI();
 }
