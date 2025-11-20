@@ -514,6 +514,70 @@ label.compact {
   transform: scale(1.05);
 }
 
+/* NEW STYLES: Sorting and Impact Feedback */
+
+/* Highlight for stock prices impacted by news */
+.price.impacted {
+  border: 2px solid var(--warning);
+  background: var(--warning-bg);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+  animation: flashImpact 1s 3 ease-in-out; /* Flash 3 times */
+}
+
+@keyframes flashImpact {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.02); opacity: 0.8; }
+}
+
+/* Style for the stock price panel header (to include sorting) */
+.price-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.sort-options button {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sort-options button.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.sort-options button:hover:not(.active) {
+  background: var(--border);
+}
+
+/* New trade info panel */
+#tradeInfo {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(148, 163, 184, 0.05);
+}
+
+#tradeInfo p {
+  margin: 0.5rem 0;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.95rem;
+}
+
+#tradeInfo strong {
+  color: var(--text-bright);
+}
 /* === PORTFOLIO TABLE === */
 #portfolio {
   background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
